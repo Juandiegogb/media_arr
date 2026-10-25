@@ -1,4 +1,5 @@
 services:
+  # --- TRAEFIK (REVERSE PROXY) ---
   traefik:
     image: traefik
     container_name: traefik
@@ -7,12 +8,17 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.redirections.entryPoint.to=web"
+      - "--entrypoints.websecure.http.redirections.entryPoint.scheme=http"
     ports:
-      - "80:80"
+      - 80:80
+      - 443:443
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - mynetwork
+
   qbittorrent:
     container_name: qbittorrent
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -28,9 +34,6 @@ services:
       - /media/jdiego/1tb1/Bittorrent:/downloads
       - /media/jdiego/Movies/movies:/movies
       - /media/jdiego/Series/tvshows:/tvshows
-    ports:
-      - "6881:6881"
-      - "6881:6881/udp"
     restart: "unless-stopped"
     labels:
       - "traefik.enable=true"
@@ -149,6 +152,17 @@ services:
       - "traefik.http.routers.readarr.rule=Host(`readarr.as`)"
       - "traefik.http.routers.readarr.entrypoints=web"
       - "traefik.http.services.readarr.loadbalancer.server.port=8787"
+
+  dashboard:
+    image: nginx
+    container_name: dashboard
+    networks:
+      - mynetwork
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.as`)"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=80"
 
 networks:
   mynetwork:
